@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Road Accident Detection</title>
+  <style>
+    body {
+      background: linear-gradient(45deg, #283048, #859398);
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    form {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      height: 400px;
+      width: 300px;
+      max-width: 100%;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      height: 80px;
+      width: 200px;
+      color: #fff;
+      background: #3498db;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      outline: none;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    button:active {
+      background: #1f618d;
+    }
+  </style>
+</head>
+<body>
+
+    <form action="/selection" method="POST" id="selectionForm">
+        <h1>Road Accident Detection</h1>
+        <input type="hidden" name="button_clicked" id="buttonClickedInput" value="">
+        <button type="button" onclick="imageDetection()">Image Detection</button>
+        <button type="button" onclick="videoDetection()">Video Detection</button>
+        <button type="button" onclick="cameraDetection()">Camera</button>
+      </form>
+
+  <script>
+    function imageDetection() {
+      // Set the hidden input value to 'image' before submitting the form
+      document.getElementById('buttonClickedInput').value = 'image';
+      document.getElementById('selectionForm').submit();
+    }
+  
+    function videoDetection() {
+      // Set the hidden input value to 'video' before submitting the form
+      document.getElementById('buttonClickedInput').value = 'video';
+      document.getElementById('selectionForm').submit();
+    }
+  
+    function cameraDetection() {
+      // Set the hidden input value to 'camera' before submitting the form
+      document.getElementById('buttonClickedInput').value = 'camera';
+      document.getElementById('selectionForm').submit();
+    }
+  </script>
+
+</body>
+</html>

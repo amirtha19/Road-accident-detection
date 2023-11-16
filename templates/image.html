@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Image Accident Detection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    /* Your CSS styles here */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #heading {
+      text-align: center;
+      padding: 20px;
+      background-color: #333;
+      color: white;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      max-width: 800px;
+      width: 80vw;
+      height: 80vh;
+      border: 2px solid #333;
+    }
+
+    .image-panel {
+      flex: 1;
+      overflow: hidden;
+      background-color: #f4f4f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 2px solid #333;
+    }
+
+    #annotated-image {
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    .file-upload {
+      padding: 20px;
+      background-color: #fff;
+      text-align: center;
+      border-bottom: 2px solid #333;
+      width: 100%;
+    }
+
+    .submit-button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      color: #fff;
+      background: #3498db;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      outline: none;
+    }
+
+    .submit-button:hover {
+      background: #2980b9;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="heading">
+    <h2>Image Accident Detection</h2>
+  </div>
+  <div class="container">
+    <form id="upload-form" action="/predict" method="POST" enctype="multipart/form-data">
+      <div class="file-upload">
+        <input type="file" name="file" accept="image/*">
+        <button class="submit-button" type="submit" id="submitBtn">Submit</button>
+      </div>
+    </form>
+    <!-- Update the image tag in your HTML template -->
+<!-- Update the image tag in your HTML template -->
+<div class="image-panel">
+    <img id="annotated-image" src="" alt="Annotated Image">
+</div>
+</div>
+</body>
+<script>
+    const form = document.getElementById('upload-form');
+    const submitButton = document.getElementById('submitBtn');
+    const annotatedImage = document.getElementById('annotated-image');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitButton.disabled = true; // Disable the button to prevent multiple submissions
+        const formData = new FormData(form);
+        const response = await fetch('/predict', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            annotatedImage.src = 'data:image/jpeg;base64,' + data.annotated_image;
+        } else {
+            console.error('Error:', data.error);
+        }
+
+        submitButton.disabled = false; // Re-enable the button after processing
+    });
+</script>

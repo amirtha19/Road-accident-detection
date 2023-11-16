@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Live Road Detection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <h2>Upload Video for Live Road Detection</h2>
+    <form id="uploadForm" action="/annotate_upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="video/*" required>
+        <input type="submit" value="Process Video">
+    </form>
+
+    <h2>Live Road Detection</h2>
+    <video id="annotated-video" controls style="max-width: 100%;"></video>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const annotatedVideo = document.getElementById('annotated-video');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(uploadForm);
+            const response = await fetch('/annotate_upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                annotatedVideo.src = url;
+                annotatedVideo.load();
+            } else {
+                console.error('Error processing video');
+            }
+        });
+    </script>
+</body>
+
+</html>
