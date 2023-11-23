@@ -175,17 +175,50 @@ def predict_and_annotate():
 
     return jsonify({'success': True, 'annotated_image': base64_image})
 
-@app.route("/annotate_upload", methods=["POST"])
-def process_video():
+# Set the upload and output folders
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['OUTPUT_FOLDER'] = 'output'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+import time
+def get_frame():
+    video = cv2.VideoCapture("output\predict\video.avi")
+
+    while True:
+        success, image = video.read()
+        if not success:
+            break
+
+        ret, jpeg = cv2.imencode('.jpg', image)   
+        frame = (b'--frame\r\n'
+                 b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')   
+        yield frame
+        time.sleep(0.1)
+
+@app.route("/predict_video", methods=["POST"])
+def predict_video():
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file part'})
+
     file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'})
+
+    # Save the uploaded video
     filename = file.filename
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(file_path)
-    model = YOLO("best.pt")
-    results = model.predict(file_path,save=True, project="runs", name="detect")
-    annotated_video_path = "runs\detect\" + file_path
-    return send_file(annotated_video_path, mimetype='video/mp4', as_attachment=True)
 
+    # Annotate the video
+    model = YOLO("best.pt")
+    result_message = model.predict(file_path, save=True, project=app.config['OUTPUT_FOLDER'],exist_ok=True)
+    output = r"output\predict\video.avi"
+        
+    with open(output, "rb") as video_file:
+        encoded_video = base64.b64encode(video_file.read()).decode('utf-8')
+    return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    
 
 if __name__ == '__main__':
     create_database()
