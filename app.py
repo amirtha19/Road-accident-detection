@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify,send_from_directory,send_file,Response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify,send_from_directory,send_file,Response,stream_with_context
 from flask_sqlalchemy import SQLAlchemy
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -9,7 +9,8 @@ from wtforms.validators import DataRequired, Email, Length,ValidationError,Input
 from flask_bcrypt import Bcrypt
 from sqlalchemy import inspect
 from ultralytics import YOLO
-
+from moviepy.editor import VideoFileClip
+import math
 import inference
 import tempfile
 import numpy as np
@@ -129,7 +130,7 @@ def selection():
     elif button_clicked == 'video':
         return render_template('video.html')
     elif button_clicked == 'camera':
-        # Add logic for camera
+        return render_template('camera.html')
         pass
     else:
         # Handle other cases or redirect to the home page
@@ -181,20 +182,17 @@ app.config['OUTPUT_FOLDER'] = 'output'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
-import time
-def get_frame():
-    video = cv2.VideoCapture("output\predict\video.avi")
+def convert_avi_to_mp4():
+    input_path = r"output\predict\video.avi"
+    output_path = r"output\predict\video.mp4"
 
-    while True:
-        success, image = video.read()
-        if not success:
-            break
+    # Create the output directory if it doesn't exist
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        ret, jpeg = cv2.imencode('.jpg', image)   
-        frame = (b'--frame\r\n'
-                 b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')   
-        yield frame
-        time.sleep(0.1)
+    clip = VideoFileClip(input_path)
+    clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+    clip.close()
+
 
 @app.route("/predict_video", methods=["POST"])
 def predict_video():
@@ -205,19 +203,68 @@ def predict_video():
     if file.filename == '':
         return jsonify({'success': False, 'message': 'No selected file'})
 
-    # Save the uploaded video
-    filename = file.filename
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    # Save the uploaded video as "video.mp4"
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'video.mp4')
     file.save(file_path)
+    annotator = sv.BoxAnnotator()
 
-    # Annotate the video
+    def on_prediction(predictions, image):
+        labels = [p["class"] for p in predictions["predictions"]]
+        detections = sv.Detections.from_roboflow(predictions)
+        cv2.imshow(
+            "Prediction", 
+            annotator.annotate(
+                scene=image, 
+                detections=detections,
+                labels=labels
+            )
+    ),
+        cv2.waitKey(1)
+
+    inference.Stream(
+        source= file_path, # or rtsp stream or camera id
+        model="live-road-detection/6", # from Universe
+        output_channel_order="BGR",
+        use_main_thread=True, # for opencv display
+        on_prediction=on_prediction, 
+    )
+
+    return jsonify({'success': True})
+
+@app.route('/webcam', methods=['POST'])
+def generate_frames():
+    cap = cv2.VideoCapture(0)  # Assuming 0 is the default camera index
     model = YOLO("best.pt")
-    result_message = model.predict(file_path, save=True, project=app.config['OUTPUT_FOLDER'],exist_ok=True)
-    output = r"output\predict\video.avi"
-        
-    with open(output, "rb") as video_file:
-        encoded_video = base64.b64encode(video_file.read()).decode('utf-8')
-    return Response(get_frame(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    classNames = ["Accident"]
+    while True:
+        success, img = cap.read()
+
+        results = model(img, stream=True)
+
+        for r in results:
+            boxes = r.boxes
+
+            for box in boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])  # Convert to int values
+
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+
+                confidence = math.ceil((box.conf[0] * 100)) / 100
+                cls = int(box.cls[0])
+                cv2.putText(img, f'{classNames[cls]}: {confidence}', (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        cv2.imshow('Webcam', img)
+        if cv2.waitKey(1) == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+    return jsonify({"success":True})
+cap =None
+@app.route("/stop",methods=["POST"])
+def stop():
+    cap.release()
+    cv2.destroyAllWindows()
+    return jsonify({"success":True})
     
 
 if __name__ == '__main__':

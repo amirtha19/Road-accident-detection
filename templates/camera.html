@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #e6f7ff; /* Light blue background */
+            transition: background-color 0.3s ease; /* Smooth transition for background color */
+        }
+
+        body.analyzing {
+            background-color: #e6f7ff; /* Maintain light blue background during analysis */
+        }
+
+        #loading-message {
+            display: none;
+        }
+
+        #analyzed-video {
+            display: none;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Webcam Analysis</h1>
+
+    <!-- Update the onclick attribute to call the analyzeWebcam function -->
+    <button onclick="openWebcam()">Open Webcam & Analyze</button>
+
+    <div id="loading-message">Processing video...</div>
+    <button action="/stop"> stop</button>
+
+    <script>
+        async function openWebcam() {
+            // Add the "analyzing" class to the body
+            document.body.classList.add('analyzing');
+
+            // Hide the button
+            document.querySelector('button').style.display = 'none';
+
+            // Display loading spinner or message here
+            var loadingMessage = document.getElementById('loading-message');
+            loadingMessage.style.display = 'block';
+
+            // Make an asynchronous request to /webcam endpoint
+            try {
+                const response = await fetch('/webcam', { method: 'POST' });
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('Webcam analysis started successfully.');
+                } else {
+                    console.error('Failed to start webcam analysis.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            } finally {
+                // Hide loading spinner or message here
+                loadingMessage.style.display = 'none';
+
+                // Remove the "analyzing" class from the body
+                document.body.classList.remove('analyzing');
+            }
+        }
+    </script>
+</body>
+
+</html>

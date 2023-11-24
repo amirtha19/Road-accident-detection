@@ -1,45 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Live Road Detection</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Annotation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #e6f7ff; /* Light blue background */
+        }
+        #video-upload {
+            margin-bottom: 20px;
+        }
+        #loading-message {
+            display: none;
+        }
+        #annotated-video {
+            display: none;
+            width: 100%;
+        }
+    </style>
 </head>
-
 <body>
-    <h2>Upload Video for Live Road Detection</h2>
-    <form id="uploadForm" action="/annotate_upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept="video/*" required>
-        <input type="submit" value="Process Video">
-    </form>
+  <h1>Video Annotation</h1>
+  
+  <input type="file" id="video-upload" accept="video/*">
+  <button onclick="annotateVideo()">Upload & Annotate</button>
+  
+  <div id="loading-message">Processing video...</div>
+ 
 
-    <h2>Live Road Detection</h2>
-    <video id="annotated-video" controls style="max-width: 100%;"></video>
+  <script>
+    function annotateVideo() {
+    var input = document.getElementById('video-upload');
+    var file = input.files[0];
 
-    <script>
-        const uploadForm = document.getElementById('uploadForm');
-        const annotatedVideo = document.getElementById('annotated-video');
+    if (!file) {
+        alert('Please select a video file.');
+        return;
+    }
 
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    // Create FormData object
+    var formData = new FormData();
+    formData.append('file', file);
 
-            const formData = new FormData(uploadForm);
-            const response = await fetch('/annotate_upload', {
-                method: 'POST',
-                body: formData
-            });
+    // Hide the upload and button
+    input.style.display = 'none';
+    document.querySelector('button').style.display = 'none';
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                annotatedVideo.src = url;
-                annotatedVideo.load();
-            } else {
-                console.error('Error processing video');
-            }
-        });
-    </script>
+    // Display loading spinner or message here
+    var loadingMessage = document.getElementById('loading-message');
+    loadingMessage.style.display = 'block';
+
+    // Use the created formData in the fetch request
+    fetch('/predict_video', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to process video.');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        var url = URL.createObjectURL(blob);
+        document.getElementById('annotated-video').src = url;
+        // Show the annotated video
+        document.getElementById('annotated-video').style.display = 'block';
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while processing the video.');
+    })
+    .finally(() => {
+        // Hide loading spinner or message here
+        loadingMessage.style.display = 'none';
+    });
+}
+
+  </script>
 </body>
-
 </html>
